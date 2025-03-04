@@ -1,16 +1,21 @@
-// app/page.tsx
 'use client';
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
-  return (
-    <div className="mt-10 text-center">
-      <h1 className="text-3xl font-bold mb-4">Welcome to the Voting Portal</h1>
-      <p className="mb-4">Participate in elections with ease and transparency.</p>
-      <div className="space-x-4">
-        <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
-        <Link href="/register" className="text-blue-600 hover:underline">Register</Link>
-      </div>
-    </div>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      if(localStorage.getItem('userRole')==="\"admin\""||localStorage.getItem('userRole')==='\"root\"'){
+        router.push('/admin');
+      }else {
+        router.push('/dashboard');
+    }
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  return <div>Loading...</div>;
 }

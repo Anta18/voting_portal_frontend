@@ -9,7 +9,6 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // Force light theme by not including any dark mode classes on <html>
   return (
     <html lang="en" className="bg-gray-50 text-gray-800">
       <body>

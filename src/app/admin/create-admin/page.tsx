@@ -19,38 +19,67 @@ export default function CreateAdminPage() {
   };
 
   return (
-    <div className="mt-10 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Create New Admin</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="full_name"
-          placeholder="Full Name"
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-          Create Admin
-        </button>
-      </form>
-      {message && <p className="mt-4 text-green-600">{message}</p>}
+    <div className="min-h-[calc(100vh-72px)] bg-gray-900 text-white flex items-center justify-center p-6">
+      <div className="bg-gray-800 rounded-lg shadow-2xl p-8 w-full max-w-md">
+        <h1 className="text-3xl font-extrabold text-center mb-6 bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
+          Create New Admin
+        </h1>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="full_name" className="block text-gray-300 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="full_name"
+              id="full_name"
+              placeholder="Enter full name"
+              onChange={handleChange}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="username" className="block text-gray-300 mb-1">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              id="username"
+              placeholder="Enter username"
+              onChange={handleChange}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-gray-300 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Enter password"
+              onChange={handleChange}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-3 bg-gradient-to-r from-yellow-400 to-red-600 text-gray-900 rounded-md font-bold transition-colors duration-300 hover:from-red-600 hover:to-yellow-400"
+          >
+            Create Admin
+          </button>
+        </form>
+        {message && (
+          <div className="mt-6 text-center">
+            <p className="text-green-400 font-semibold">{message}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

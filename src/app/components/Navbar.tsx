@@ -1,42 +1,64 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChevronDown, Menu, X } from 'lucide-react';
 
 type User = {
-  name: string;
+  full_name: string;
   role?: string;
 } | null;
 
-export default function Navbar() {
+export default function MergedNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User>({ name: 'John Doe' });
+
+  const [user, setUser] = useState<User>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
 
-  useEffect(() => {
+  // Load user and role from localStorage
+  const loadFromStorage = useCallback(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    setUser(storedUser ? JSON.parse(storedUser) : null);
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
   }, []);
 
+  useEffect(() => {
+    loadFromStorage();
+
+    // Listen for storage and focus events to update the navbar if changes happen elsewhere
+    const handleStorageChange = () => loadFromStorage();
+    const handleFocus = () => loadFromStorage();
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadFromStorage]);
+
   const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
+    setIsDropdownOpen((prev) => !prev);
   };
 
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    setIsMobileMenuOpen((prev) => !prev);
   };
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
     setIsMobileMenuOpen(false);
     localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userRole');
+    window.dispatchEvent(new Event('storage'));
     setUser(null);
+    setUserRole(null);
     setShowLogoutMessage(true);
     router.push('/login');
   };
@@ -56,14 +78,42 @@ export default function Navbar() {
     </div>
   );
 
+  // Determine if this is an admin session
+  const isAdmin = userRole === '"admin"' || userRole === '"root"';
+
+  // Define the links for each navbar type
+  const clientLinks = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/elections/register', label: 'Register Election' },
+    { href: '/elections/vote', label: 'Vote' },
+    { href: '/elections/results/live', label: 'Live Results' },
+    { href: '/elections/results/final', label: 'Final Results' },
+    { href: '/candidate/register', label: 'Candidate Registration' },
+  ];
+
+  const adminLinks = [
+    { href: '/admin', label: 'Dashboard' },
+    { href: '/admin/create-admin', label: 'Create Admin' },
+    { href: '/admin/create-election', label: 'Create Election' },
+    { href: '/admin/approve-candidates', label: 'Approve Candidates' },
+    { href: '/admin/view-registrations', label: 'View Registrations' },
+    { href: '/admin/check-integrity', label: 'Check Vote Integrity' },
+    { href: '/admin/results/live', label: 'Live Results' },
+    { href: '/admin/results/published', label: 'Published Results' },
+  ];
+
+  const links = isAdmin ? adminLinks : clientLinks;
+  const homeHref = isAdmin ? '/admin' : '/';
+  const portalName = isAdmin ? 'Admin Portal' : 'Voting Portal';
+
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full bg-gradient-to-r from-gray-800 to-gray-900 shadow-xl transition-all h-[calc(72px)]">
+      <nav className="sticky top-0 z-50 w-full bg-gradient-to-r from-gray-800 to-gray-900 shadow-xl transition-all h-[72px]">
         <div className="flex items-center justify-between h-16 px-6">
-          <Link href="/" className="flex items-center">
-            <img className="h-10 mr-3" src="/logo.png" alt="Voting Portal Logo" />
+          <Link href={homeHref} className="flex items-center">
+            <img className="h-10 mr-3" src="/logo.png" alt={`${portalName} Logo`} />
             <span className="text-2xl font-extrabold bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
-              Voting Portal
+              {portalName}
             </span>
           </Link>
           <div className="lg:hidden">
@@ -74,14 +124,7 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center space-x-4">
             {user ? (
               <>
-                {[
-                  { href: '/dashboard', label: 'Dashboard' },
-                  { href: '/elections/register', label: 'Register Election' },
-                  { href: '/elections/vote', label: 'Vote' },
-                  { href: '/elections/results/live', label: 'Live Results' },
-                  { href: '/elections/results/final', label: 'Final Results' },
-                  { href: '/candidate/register', label: 'Candidate Registration' },
-                ].map((link) => (
+                {links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -100,23 +143,14 @@ export default function Navbar() {
                     onClick={toggleDropdown}
                     className="flex items-center gap-1 px-4 py-2 rounded-md border border-gray-800 bg-gray-700 text-lg text-yellow-400 transition-transform duration-300 hover:bg-gray-600"
                   >
-                    <span>{user.name}</span>
+                    <span>{user.full_name}</span>
                     <ChevronDown
-                      className={`h-5 w-5 transition-transform ${
-                        isDropdownOpen ? 'rotate-180' : ''
-                      }`}
+                      className={`h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md border border-yellow-400 shadow-2xl bg-gray-900">
                       <div className="py-1">
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Profile
-                        </Link>
                         <button
                           className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-700"
                           onClick={handleLogout}
@@ -130,18 +164,29 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link
-                  href="/register"
-                  className="text-lg px-4 py-2 rounded-md bg-yellow-400 text-gray-900 hover:bg-yellow-500 transition-colors duration-300"
-                >
-                  Register
-                </Link>
-                <Link
-                  href="/login"
-                  className="text-lg px-4 py-2 rounded-md bg-gray-700 text-yellow-400 hover:bg-gray-600 transition-colors duration-300"
-                >
-                  Login
-                </Link>
+                {isAdmin ? (
+                  <Link
+                    href="/login"
+                    className="text-lg px-4 py-2 rounded-md bg-gray-700 text-yellow-400 hover:bg-gray-600 transition-colors duration-300"
+                  >
+                    Login
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/register"
+                      className="text-lg px-4 py-2 rounded-md bg-yellow-400 text-gray-900 hover:bg-yellow-500 transition-colors duration-300"
+                    >
+                      Register
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="text-lg px-4 py-2 rounded-md bg-gray-700 text-yellow-400 hover:bg-gray-600 transition-colors duration-300"
+                    >
+                      Login
+                    </Link>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -152,15 +197,7 @@ export default function Navbar() {
             <div className="flex flex-col p-4 space-y-3">
               {user ? (
                 <>
-                  {[
-                    { href: '/dashboard', label: 'Dashboard' },
-                    { href: '/elections/register', label: 'Register Election' },
-                    { href: '/elections/vote', label: 'Vote' },
-                    { href: '/elections/results/live', label: 'Live Results' },
-                    { href: '/elections/results/final', label: 'Final Results' },
-                    { href: '/candidate/register', label: 'Candidate Registration' },
-                    { href: '/profile', label: 'Profile' },
-                  ].map((link) => (
+                  {links.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
@@ -182,20 +219,32 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link
-                    href="/register"
-                    className="text-lg text-gray-900 bg-yellow-400 py-2 px-4 rounded-md hover:bg-yellow-500 transition-colors duration-300"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Register
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="text-lg text-yellow-400 bg-gray-700 py-2 px-4 rounded-md hover:bg-gray-600 transition-colors duration-300"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
+                  {isAdmin ? (
+                    <Link
+                      href="/login"
+                      className="text-lg text-yellow-400 bg-gray-700 py-2 px-4 rounded-md hover:bg-gray-600 transition-colors duration-300"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href="/register"
+                        className="text-lg text-gray-900 bg-yellow-400 py-2 px-4 rounded-md hover:bg-yellow-500 transition-colors duration-300"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Register
+                      </Link>
+                      <Link
+                        href="/login"
+                        className="text-lg text-yellow-400 bg-gray-700 py-2 px-4 rounded-md hover:bg-gray-600 transition-colors duration-300"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Login
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
             </div>

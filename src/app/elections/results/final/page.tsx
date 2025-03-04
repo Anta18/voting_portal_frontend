@@ -1,169 +1,263 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import {
+  Chart as ChartJS, ChartOptions,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { AuthGuard } from '@/app/components/AuthGuard';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface Election {
   id: string;
   name: string;
+  election_type?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
-const dummyElections: Election[] = [
-  { id: '1', name: '2025 School Board Election' },
-  { id: '2', name: 'Local Government Election' },
-];
-
-const dummyFinalResults: { [key: string]: { election_name: string; details: string } } = {
-  '1': {
-    election_name: '2025 School Board Election',
-    details: 'Alice Johnson wins with 45% of the votes.',
-  },
-  '2': {
-    election_name: 'Local Government Election',
-    details: 'Diana Prince wins with 55% of the votes.',
-  },
-};
-
-// Dummy data for the final results pie chart (candidate breakdown)
-const dummyFinalChartData: { [key: string]: { labels: string[]; data: number[] } } = {
-  '1': { labels: ['Alice Johnson', 'Bob Smith', 'Charles Davis', 'Diana Prince', 'Evan Stone'], data: [45, 30, 15, 10, 5] },
-  '2': { labels: ['Diana Prince', 'Charlie Brown', 'George Hill', 'Helen Troy', 'Ian Wright'], data: [55, 25, 20, 10, 5] },
-};
-
-// Dummy leaderboard data with candidate votes (more than 5 entries for demonstration)
-const dummyFinalLeaderboard: { [key: string]: { candidate: string; votes: number }[] } = {
-  '1': [
-    { candidate: 'Alice Johnson', votes: 45 },
-    { candidate: 'Bob Smith', votes: 30 },
-    { candidate: 'Charles Davis', votes: 15 },
-    { candidate: 'Diana Prince', votes: 10 },
-    { candidate: 'Evan Stone', votes: 5 },
-    { candidate: 'Fiona Clark', votes: 2 },
-  ],
-  '2': [
-    { candidate: 'Diana Prince', votes: 55 },
-    { candidate: 'Charlie Brown', votes: 25 },
-    { candidate: 'George Hill', votes: 20 },
-    { candidate: 'Helen Troy', votes: 10 },
-    { candidate: 'Ian Wright', votes: 5 },
-    { candidate: 'Jasmine Lee', votes: 3 },
-  ],
-};
-
 export default function FinalResultsPage() {
-  const [selectedElection, setSelectedElection] = useState<string>('');
-  const result = selectedElection ? dummyFinalResults[selectedElection] : null;
-  const chartInfo = selectedElection ? dummyFinalChartData[selectedElection] : null;
-  const leaderboardData = selectedElection ? dummyFinalLeaderboard[selectedElection] : null;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Prepare pie chart data if available
+  // Sidebar elections fetched from backend (/election/user/past)
+  const [sidebarElections, setSidebarElections] = useState<Election[]>([]);
+  const [sidebarError, setSidebarError] = useState<string>('');
+
+  // Final results fetched from backend (/results/final?election_id=...)
+  const [finalResult, setFinalResult] = useState<any>(null);
+  const [resultsError, setResultsError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Currently selected election from sidebar
+  const [selectedElection, setSelectedElection] = useState<string>('');
+  // Toggle to show all results vs top 5
+  const [showAll, setShowAll] = useState(false);
+
+  // Fetch sidebar elections (past elections) from backend
+  useEffect(() => {
+    async function fetchSidebarElections() {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch(`${API_URL}/election/user/past`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error('Failed to fetch past elections');
+        }
+        const data = await res.json();
+        setSidebarElections(data.past_elections || []);
+        if (data.past_elections && data.past_elections.length > 0) {
+          setSelectedElection(data.past_elections[0].id);
+        }
+      } catch (err: any) {
+        console.error(err);
+        setSidebarError(err.message || 'Error fetching elections');
+      }
+    }
+    fetchSidebarElections();
+  }, [API_URL]);
+
+  // Fetch final results for the selected election from backend
+  useEffect(() => {
+    async function fetchFinalResults() {
+      if (!selectedElection) return;
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch(
+          `${API_URL}/results/final?election_id=${selectedElection}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!res.ok) {
+          throw new Error('Failed to fetch final results');
+        }
+        const data = await res.json();
+        // When an election id is provided, backend returns a flat object.
+        setFinalResult(data.final_results);
+      } catch (err: any) {
+        console.error(err);
+        setResultsError(err.message || 'Error fetching final results');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchFinalResults();
+  }, [API_URL, selectedElection]);
+
+  // Process final result data if available
+  let resultsForElection = finalResult ? finalResult.results : null;
+  let sortedResults: [string, number][] = [];
+  if (resultsForElection) {
+    sortedResults = Object.entries(resultsForElection).map(
+      ([key, value]) => [key, value] as [string, number]
+    ).sort((a, b) => b[1] - a[1]);
+  }
+  const totalVotes = sortedResults.reduce((sum, [, count]) => sum + count, 0);
+  const displayResults = showAll ? sortedResults : sortedResults.slice(0, 5);
+
+  // Prepare pie chart data: top 4 candidates and aggregate remaining as 'Others'
   let pieData = null;
-  if (chartInfo) {
+  if (sortedResults.length > 0) {
+    const topFour = sortedResults.slice(0, 4);
+    const others = sortedResults.slice(4);
+    const othersTotal = others.reduce((sum, [, count]) => sum + count, 0);
+    const labels = topFour.map(([name]) => name);
+    const dataValues = topFour.map(([, count]) => count);
+    if (othersTotal > 0) {
+      labels.push('Others');
+      dataValues.push(othersTotal);
+    }
     pieData = {
-      labels: chartInfo.labels,
+      labels,
       datasets: [
         {
-          data: chartInfo.data,
-          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+          data: dataValues,
+          backgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#FFCE56',
+            '#4BC0C0',
+            '#9966FF',
+          ],
         },
       ],
     };
   }
 
-  // Get top 5 leaderboard entries sorted descending by votes
-  const topFive = leaderboardData
-    ? leaderboardData.sort((a, b) => b.votes - a.votes).slice(0, 5)
-    : [];
+  const pieOptions: ChartOptions<'pie'> = {
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.chart.data.datasets[0].data.reduce(
+              (sum: number, val: number) => sum + val,
+              0
+            );
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${value} votes (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
 
   return (
+    <AuthGuard>
     <div className="h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 p-4">
       <div className="h-full flex flex-col md:flex-row">
         {/* Sidebar */}
-        <aside className="md:w-1/4 h-full mr-4 overflow-y-auto">
-          <div className="h-full p-4 rounded-xl bg-blue-900 shadow-lg">
-            <h2 className="text-xl font-bold mb-4 text-center border-b border-blue-700 pb-2">
+        <aside className="md:w-1/4 h-1/2 md:h-full md:mr-4 mb-4 md:mb-0 overflow-y-auto bg-blue-950">
+          <div className="h-full p-4 rounded-xl shadow-lg">
+            <h2 className="text-xl font-bold mb-4 text-center border-b border-yellow-700 pb-2">
               Elections
             </h2>
-            <ul className="space-y-3">
-              {dummyElections.map((election) => (
-                <li key={election.id}>
-                  <button
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors duration-300 font-medium ${
-                      selectedElection === election.id
-                        ? 'bg-yellow-500 text-gray-900'
-                        : 'bg-blue-800 text-gray-200 hover:bg-yellow-500 hover:text-gray-900'
-                    }`}
-                    onClick={() => setSelectedElection(election.id)}
-                  >
-                    {election.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {sidebarError ? (
+              <p className="text-center text-red-500">{sidebarError}</p>
+            ) : (
+              <ul className="space-y-3">
+                {sidebarElections.map((election) => (
+                  <li key={election.id}>
+                    <button
+                      className={`w-full text-left px-4 py-2 rounded-lg transition-colors duration-300 font-medium ${
+                        selectedElection === election.id
+                          ? 'bg-yellow-500 text-gray-900'
+                          : 'bg-red-950 text-gray-200 hover:bg-yellow-500 hover:text-gray-900'
+                      }`}
+                      onClick={() => {
+                        setSelectedElection(election.id);
+                        setShowAll(false);
+                      }}
+                    >
+                      {election.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="md:w-3/4 h-full overflow-y-auto">
+        <main className="md:w-3/4 h-1/2 md:h-full overflow-y-auto">
           <h1 className="text-3xl font-extrabold mb-6 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
             Final Results
           </h1>
-          {selectedElection ? (
-            result ? (
+          {loading ? (
+            <p className="text-center">Loading final results...</p>
+          ) : resultsError ? (
+            <p className="text-center text-red-500">{resultsError}</p>
+          ) : selectedElection ? (
+            finalResult && resultsForElection ? (
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left Column: Result Details and Leaderboard */}
                 <div className="lg:w-1/2 space-y-6">
-                  {/* Result Details Card */}
                   <div
                     className="p-6 rounded-lg bg-gray-700 shadow-lg border-t-4 border-transparent bg-clip-padding"
-                    style={{ borderImage: 'linear-gradient(to right, #f6d365, #fda085) 1' }}
+                    style={{
+                      borderImage:
+                        'linear-gradient(to right, #f6d365, #fda085) 1',
+                    }}
                   >
-                    <h2 className="text-2xl font-bold mb-2">{result.election_name}</h2>
-                    <p className="text-lg">{result.details}</p>
+                    <h2 className="text-2xl font-bold mb-2">
+                      {finalResult.election_name}
+                    </h2>
+                    <p className="text-lg">
+                      Final vote tally is available below.
+                    </p>
                   </div>
-
-                  {/* Leaderboard */}
                   <div className="p-6 rounded-lg bg-gray-700 shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">Leaderboard (Top 5)</h3>
+                    <h3 className="text-xl font-bold mb-4">
+                      Leaderboard (Top 5)
+                    </h3>
                     <ul className="space-y-3">
-                      {topFive.map((entry, index) => (
-                        <li key={entry.candidate} className="flex justify-between items-center border-b border-gray-600 pb-2">
-                          <span className="font-medium">
-                            {index + 1}. {entry.candidate}
-                          </span>
-                          <span className="font-semibold">{entry.votes} votes</span>
+                      {displayResults.map(([candidate, count]) => (
+                        <li
+                          key={candidate}
+                          className="flex justify-between items-center border-b border-gray-600 pb-2"
+                        >
+                          <span className="font-medium">{candidate}</span>
+                          <span className="font-semibold">{count} votes</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 </div>
-
                 {/* Right Column: Pie Chart */}
                 <div className="lg:w-1/2 flex justify-center items-center">
                   {pieData && (
                     <div className="max-w-md w-full">
-                      <Pie
-                        data={pieData}
-                        options={{
-                          plugins: {
-                            legend: { position: 'bottom' },
-                          },
-                        }}
-                      />
+                      <Pie data={pieData} options={pieOptions} />
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <p>No results available for this election.</p>
+              <p className="text-center">
+                No results available for this election.
+              </p>
             )
           ) : (
-            <p className="text-center">Please select an election from the sidebar.</p>
+            <p className="text-center text-gray-400">
+              Please select an election from the sidebar.
+            </p>
           )}
         </main>
       </div>
     </div>
+    </AuthGuard>
   );
 }

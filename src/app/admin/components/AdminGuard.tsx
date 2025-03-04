@@ -7,9 +7,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const router = useRouter();
 
   useEffect(() => {
-    // Dummy check: assume localStorage.userRole holds the role (e.g., "admin")
     const role = localStorage.getItem('userRole');
-    if (role !== 'admin') {
+    console.log(role)
+    if (role != "\"admin\""&&role!='\"root\"') {
       router.push('/');
     }
   }, [router]);
