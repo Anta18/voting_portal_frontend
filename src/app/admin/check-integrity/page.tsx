@@ -1,36 +1,97 @@
-'use client';
-import { useState } from 'react';
+"use client";
+import { useState } from "react";
 
-interface Block {
-  index: number;
-  timestamp: string;
-  vote_data: string;
-  previous_hash: string;
-  hash: string;
+interface IntegrityResponse {
+  totalEvents: number;
+  integrityResults: {
+    electionId: string;
+    candidates: {
+      candidate: string;
+      storedCount: number;
+      eventCount: number;
+      valid: boolean;
+    }[];
+  }[];
 }
 
-const dummyBlockchain: Block[] = [
-  { index: 0, timestamp: '2025-01-01T00:00:00Z', vote_data: 'Genesis Block', previous_hash: '0', hash: 'abcd1234' },
-  { index: 1, timestamp: '2025-03-02T12:34:56Z', vote_data: '{"election_id":"1", "voter_id":"1", "candidate":"1"}', previous_hash: 'abcd1234', hash: 'efgh5678' },
-  { index: 2, timestamp: '2025-03-02T12:35:56Z', vote_data: '{"election_id":"1", "voter_id":"2", "candidate":"1"}', previous_hash: 'efgh5678', hash: 'ijkl9012' },
-];
-
 export default function CheckIntegrityPage() {
+  const [integrityData, setIntegrityData] = useState<IntegrityResponse | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const verifyIntegrity = async () => {
+    setLoading(true);
+    setError(null);
+    setIntegrityData(null);
+    try {
+      const res = await fetch(`${backendUrl}/admin/blockchain_integrity`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.error || "Error verifying integrity");
+      } else {
+        const data: IntegrityResponse = await res.json();
+        setIntegrityData(data);
+      }
+    } catch (err: any) {
+      setError(err.message || "Error verifying integrity");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="mt-10 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Check Vote Integrity</h1>
-      <p className="mb-4">Below is a dummy representation of the blockchain:</p>
-      <div className="space-y-4">
-        {dummyBlockchain.map(block => (
-          <div key={block.index} className="p-4 border rounded bg-white">
-            <p><span className="font-bold">Block {block.index}</span></p>
-            <p>Timestamp: {block.timestamp}</p>
-            <p>Vote Data: {block.vote_data}</p>
-            <p>Previous Hash: {block.previous_hash}</p>
-            <p>Hash: {block.hash}</p>
-          </div>
-        ))}
-      </div>
+    <div className="mt-10 max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Check Blockchain Integrity</h1>
+      <p className="mb-4">
+        Click the button below to verify the integrity of the blockchain using
+        the backend route.
+      </p>
+      <button
+        onClick={verifyIntegrity}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+      >
+        {loading ? "Verifying..." : "Verify Integrity"}
+      </button>
+
+      {error && (
+        <div className="mt-4 text-red-500">
+          <p>Error: {error}</p>
+        </div>
+      )}
+
+      {integrityData && (
+        <div className="mt-6">
+          <h2 className="text-xl font-bold mb-2">Integrity Report</h2>
+          <p>Total Events: {integrityData.totalEvents}</p>
+          {integrityData.integrityResults.map((result) => (
+            <div
+              key={result.electionId}
+              className="mt-4 border p-4 rounded bg-gray-50"
+            >
+              <p className="font-bold">Election ID: {result.electionId}</p>
+              {result.candidates.map((cand) => (
+                <div key={cand.candidate} className="ml-4 mb-2">
+                  <p>Candidate: {cand.candidate}</p>
+                  <p>Stored Count: {cand.storedCount}</p>
+                  <p>Event Count: {cand.eventCount}</p>
+                  <p>Status: {cand.valid ? "Valid" : "Invalid"}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

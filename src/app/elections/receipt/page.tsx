@@ -10,7 +10,7 @@ function ReceiptContent() {
   return (
     <div className="min-h-[calc(100vh-72px)] h-full bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-6">
       <div
-        className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 border-t-4 border-transparent bg-clip-padding backdrop-filter backdrop-blur-sm"
+        className="max-w-lg w-full bg-gray-800 rounded-xl shadow-2xl p-8 border-t-4 border-transparent bg-clip-padding backdrop-filter backdrop-blur-sm"
         style={{ borderImage: 'linear-gradient(to right, #f6d365, #fda085) 1' }}
       >
         <h1 className="text-3xl font-extrabold mb-6 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
@@ -24,8 +24,8 @@ function ReceiptContent() {
                 Vote Recorded Successfully!
               </p>
             </div>
-            <p className="font-mono text-xl text-gray-100 text-center">
-              Receipt Code: <span className="font-bold">{receipt}</span>
+            <p className="font-mono text-xl text-gray-100 text-center break-all">
+              Receipt Code: <span className="font-bold break-words">{receipt}</span>
             </p>
           </div>
         ) : (
