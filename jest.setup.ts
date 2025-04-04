@@ -1,3 +1,4 @@
+// @ts-nocheck
 import '@testing-library/jest-dom';
 import 'whatwg-fetch';
 import { logTestActivity } from './src/utils/test-utils/logger';
@@ -6,6 +7,7 @@ const originalTest = globalThis.test;
 const originalIt = globalThis.it;
 const originalDescribe = globalThis.describe;
 
+// Modify the global test and it functions to include logging.
 globalThis.test = globalThis.it = (label: string, cb?: () => void) => {
   originalIt(label, logTestActivity((...args) => {
     return new Promise((resolve) => {
@@ -92,8 +94,8 @@ HTMLCanvasElement.prototype.getContext = function (contextType) {
   }
   return null;
 };
-process.on("unhandledRejection", () => {});
 
+process.on("unhandledRejection", () => {});
 import { waitFor as originalWaitFor } from "@testing-library/react";
 jest.mock("@testing-library/react", () => {
   const actual = jest.requireActual("@testing-library/react");
