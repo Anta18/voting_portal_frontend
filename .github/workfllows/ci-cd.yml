@@ -2,8 +2,9 @@ name: Run Tests, Lint, and Deploy to Vercel
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 jobs:
   test-lint-deploy:
