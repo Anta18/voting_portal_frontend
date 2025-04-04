@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AuthGuard } from "@/app/components/AuthGuard";
 
 interface Election {
@@ -10,6 +10,11 @@ interface Election {
   end_date?: string;
 }
 
+type User = {
+  full_name: string;
+  role?: string;
+} | null;
+
 export default function ElectionsPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [elections, setElections] = useState<Election[]>([]);
@@ -17,6 +22,23 @@ export default function ElectionsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [flashMessage, setFlashMessage] = useState<string>("");
   const [flashType, setFlashType] = useState<"success" | "error">("success");
+  const [user, setUser] = useState<User>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Load user from localStorage
+  const loadFromStorage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      setUser(storedUser ? JSON.parse(storedUser) : null);
+      console.log(user);
+      const role = localStorage.getItem("userRole");
+      setUserRole(role);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   // Fetch eligible elections from backend (/election/eligible_for_registration)
   useEffect(() => {
@@ -92,6 +114,27 @@ export default function ElectionsPage() {
     <AuthGuard>
       <div className="relative min-h-[calc(100vh-72px)] bg-gray-900 text-white p-6">
         <div className="max-w-6xl mx-auto">
+          {/* Form Section with prefilled full name */}
+          <div className="mb-12">
+            <label
+              htmlFor="fullName"
+              className="block text-xl font-semibold mb-2"
+            >
+              Full Name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              value={user?.full_name || ""}
+              onChange={(e) =>
+                setUser((prevUser) =>
+                  prevUser ? { ...prevUser, full_name: e.target.value } : null
+                )
+              }
+              className="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none"
+            />
+          </div>
+
           <h1 className="text-4xl font-extrabold mb-24 mt-12 text-center bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
             Elections
           </h1>
@@ -112,14 +155,12 @@ export default function ElectionsPage() {
               {elections.map((election) => (
                 <div
                   key={election._id}
-                  className="bg-gray-800 rounded-xl shadow-lg overflow-hidden border-l-8 border-transparent transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:border-l-8 hover:border-gradient-to-br hover:from-yellow-400 hover:to-red-600"
+                  className="bg-gray-800 rounded-xl shadow-lg overflow-hidden border-l-8 border-transparent transition-transform duration-300 hover:scale-105 hover:shadow-2xl"
                 >
                   <div className="p-6">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
-                        {election.name}
-                      </h2>
-                    </div>
+                    <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
+                      {election.name}
+                    </h2>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Type:</span>

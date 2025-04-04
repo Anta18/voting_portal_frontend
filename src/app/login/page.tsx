@@ -59,7 +59,7 @@ export default function LoginPage() {
 
   return (
     <NoAuthGuard>
-      <div className="h-[calc(100vh-72px)] flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-[calc(100vh-72px)] flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5"></div>
         </div>

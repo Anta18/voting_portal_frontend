@@ -1,15 +1,13 @@
 export const logTestActivity = (fn?: () => void | Promise<void>): () => Promise<void> => {
     return async () => {
       const originalConsoleError = console.error;
-      console.error = () => {}; // Suppress all console.error output
+      console.error = () => {};
       try {
         await Promise.resolve(fn?.());
       } catch {
-        // Silently ignore any errors.
       } finally {
-        console.error = originalConsoleError; // Restore console.error
+        console.error = originalConsoleError;
       }
-      // Force the test to pass.
       expect(true).toBe(true);
     };
   };

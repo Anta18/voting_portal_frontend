@@ -333,7 +333,7 @@ export default function LiveResultsPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-72px)] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
+    <div className="min-h-[calc(100vh-72px)] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
       {/* Mobile header with toggle button */}
       <div className="md:hidden flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700">
         <h1 className="text-xl font-bold bg-gradient-to-r from-amber-400 to-rose-500 bg-clip-text text-transparent">
