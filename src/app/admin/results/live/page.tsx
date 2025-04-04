@@ -38,12 +38,10 @@ interface LiveResultsPayload {
 export default function LiveResultsPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Sidebar elections fetched from backend (/election/admin/ongoing)
   const [sidebarElections, setSidebarElections] = useState<Election[]>([]);
   const [sidebarError, setSidebarError] = useState<string>("");
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
-  // Live results received via SocketIO
   const [liveResults, setLiveResults] = useState<LiveResultsPayload | null>(
     null
   );
@@ -51,18 +49,13 @@ export default function LiveResultsPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  // Currently selected election ID from sidebar
   const [selectedElection, setSelectedElection] = useState<string>("");
-  // Toggle for showing all results vs. top 5
   const [showAll, setShowAll] = useState(false);
 
-  // State to force a re-render (e.g. for chart updates)
   const [updateCounter, setUpdateCounter] = useState(0);
 
-  // Socket instance
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  // Fetch sidebar elections from backend
   useEffect(() => {
     async function fetchSidebarElections() {
       try {
@@ -86,7 +79,6 @@ export default function LiveResultsPage() {
     fetchSidebarElections();
   }, [API_URL]);
 
-  // Manage socket connection based on selected election
   useEffect(() => {
     if (!selectedElection) return;
 
@@ -97,7 +89,6 @@ export default function LiveResultsPage() {
       return;
     }
 
-    // Establish socket connection
     const newSocket = io(API_URL, {
       transports: ["websocket"],
       auth: { token },
@@ -105,11 +96,9 @@ export default function LiveResultsPage() {
     setSocket(newSocket);
     setLoading(true);
 
-    // Listen for complete live results event
     newSocket.on("live_results_admin", (data: LiveResultsPayload) => {
       console.log("Received live results:", data);
       if (data.election_id === selectedElection) {
-        // Create new object and array references and force re-render
         setLiveResults({ ...data, live_results: [...data.live_results] });
         setUpdateCounter((prev) => prev + 1);
       }
@@ -117,12 +106,9 @@ export default function LiveResultsPage() {
       setRefreshing(false);
     });
 
-    // Process incremental vote updates using candidate names for matching.
     newSocket.on("vote_update", (data: any) => {
       console.log("Received vote update:", data);
       if (data.election_id === selectedElection) {
-        // Update candidate vote counts based on the tally payload.
-        // Here we match on candidate_name instead of candidate_id.
         setLiveResults((prev) => {
           if (!prev) return prev;
           const updatedCandidates = prev.live_results.map((candidate) => {
@@ -150,20 +136,17 @@ export default function LiveResultsPage() {
       setRefreshing(false);
     });
 
-    // Emit subscription event for the selected election
     newSocket.emit("subscribe_live_results_admin", {
       token,
       election_id: selectedElection,
     });
     console.log("Subscribed: ", selectedElection);
 
-    // Cleanup: disconnect socket on unmount or election change
     return () => {
       newSocket.disconnect();
     };
   }, [selectedElection, API_URL]);
 
-  // Handle election selection
   const handleElectionSelect = (electionId: string) => {
     if (socket) {
       socket.disconnect();
@@ -172,7 +155,6 @@ export default function LiveResultsPage() {
     setSelectedElection(electionId);
     setLiveResults(null);
     setShowAll(false);
-    // On mobile, hide sidebar after selection
     if (window.innerWidth < 768) {
       setSidebarVisible(false);
     }
@@ -188,19 +170,16 @@ export default function LiveResultsPage() {
       election_id: selectedElection,
     });
 
-    // Safety timeout to reset refreshing state if no response
     setTimeout(() => {
       setRefreshing(false);
     }, 5000);
   };
 
-  // Get the live results for the selected election
   let candidateResults: CandidateResult[] | null = null;
   if (liveResults && liveResults.election_id === selectedElection) {
     candidateResults = liveResults.live_results;
   }
 
-  // Sort results descending by vote_count
   let sortedResults: CandidateResult[] = [];
   if (candidateResults) {
     sortedResults = [...candidateResults].sort(
@@ -208,19 +187,15 @@ export default function LiveResultsPage() {
     );
   }
 
-  // Compute total votes for percentage calculations
   const totalVotes = sortedResults.reduce(
     (sum, candidate) => sum + Number(candidate.vote_count),
     0
   );
 
-  // Get current leader
   const leader = sortedResults.length > 0 ? sortedResults[0] : null;
 
-  // List display: default to top 5 unless "View All" is toggled
   const displayResults = showAll ? sortedResults : sortedResults.slice(0, 5);
 
-  // Prepare pie chart data: top 4 candidates with remaining as 'Others'
   let pieData = null;
   if (sortedResults.length > 0) {
     const topFour = sortedResults.slice(0, 4);
@@ -260,7 +235,6 @@ export default function LiveResultsPage() {
     };
   }
 
-  // Pie chart options to display count and percentage on hover
   const pieOptions = {
     plugins: {
       legend: {
@@ -303,12 +277,10 @@ export default function LiveResultsPage() {
     maintainAspectRatio: true,
   };
 
-  // Find selected election details
   const selectedElectionDetails = sidebarElections.find(
     (election) => election._id === selectedElection
   );
 
-  // Format the time component
   const formatTime = () => {
     const now = new Date();
     return now.toLocaleTimeString(undefined, {
@@ -327,7 +299,6 @@ export default function LiveResultsPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Mobile sidebar toggle
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
   };

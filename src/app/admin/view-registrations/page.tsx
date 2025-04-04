@@ -17,7 +17,6 @@ import {
   FileText,
 } from "lucide-react";
 
-// Define interfaces
 interface Voter {
   id: string;
   full_name: string;
@@ -54,7 +53,6 @@ interface ElectionRegistration {
   status?: "approved" | "pending" | "rejected";
 }
 
-// Stats interface for dashboard analytics
 interface Stats {
   votersCount: number;
   candidatesCount: number;
@@ -64,7 +62,6 @@ interface Stats {
   approvedRegistrations: number;
 }
 
-// Extended modal props for candidate deapproval.
 interface ModalProps {
   title: string;
   data: any;
@@ -75,7 +72,6 @@ interface ModalProps {
   onDeapproved?: () => void;
 }
 
-// DetailsModal now supports candidate deapproval.
 const DetailsModal: React.FC<ModalProps> = ({
   title,
   data,
@@ -83,7 +79,6 @@ const DetailsModal: React.FC<ModalProps> = ({
   onClose,
   onDeapproved,
 }) => {
-  // For candidate deapproval confirmation
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [deapprovalError, setDeapprovalError] = useState<string>("");
@@ -107,7 +102,6 @@ const DetailsModal: React.FC<ModalProps> = ({
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to deapprove candidate");
       }
-      // Call parent callback to refresh data.
       if (onDeapproved) onDeapproved();
       setShowConfirm(false);
       onClose();

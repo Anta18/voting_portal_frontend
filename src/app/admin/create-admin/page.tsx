@@ -28,7 +28,7 @@ export default function CreateAdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // Assumes JWT is stored in localStorage
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),
       });
@@ -48,7 +48,6 @@ export default function CreateAdminPage() {
         password: "",
       });
 
-      // Optionally, redirect
       setTimeout(() => router.push("/admin/dashboard"), 2000);
     } catch (err: any) {
       setError(err.message);

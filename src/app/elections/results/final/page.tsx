@@ -25,7 +25,7 @@ interface FinalResultsPayload {
   [election_id: string]: {
     election_name: string;
     results: {
-      [candidate: string]: number; // Direct mapping from candidate name to vote count
+      [candidate: string]: number;
     };
   };
 }
@@ -33,24 +33,20 @@ interface FinalResultsPayload {
 export default function FinalResultsPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Sidebar elections (past elections)
   const [sidebarElections, setSidebarElections] = useState<Election[]>([]);
   const [sidebarError, setSidebarError] = useState<string>("");
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
-  // Final results data
   const [finalResult, setFinalResult] = useState<FinalResultsPayload | null>(
     null
   );
   const [resultsError, setResultsError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Currently selected election from sidebar
   const [selectedElection, setSelectedElection] = useState<string>("");
-  // Toggle for showing all results vs. top 5
+
   const [showAll, setShowAll] = useState(false);
 
-  // Fetch past elections for sidebar
   useEffect(() => {
     async function fetchSidebarElections() {
       try {
@@ -67,7 +63,6 @@ export default function FinalResultsPage() {
         const data = await res.json();
         setSidebarElections(data.past_elections || []);
         if (data.past_elections && data.past_elections.length > 0) {
-          // Adjust property name if needed (_id vs id)
           setSelectedElection(
             data.past_elections[0]._id || data.past_elections[0].id
           );
@@ -80,7 +75,6 @@ export default function FinalResultsPage() {
     fetchSidebarElections();
   }, [API_URL]);
 
-  // Fetch final results for the selected election
   useEffect(() => {
     async function fetchFinalResults() {
       if (!selectedElection) return;
@@ -100,7 +94,6 @@ export default function FinalResultsPage() {
           throw new Error("Failed to fetch final results");
         }
         const data = await res.json();
-        // Backend returns a flat object with final_results
         setFinalResult(data.final_results);
       } catch (err: any) {
         console.error(err);
@@ -112,7 +105,6 @@ export default function FinalResultsPage() {
     fetchFinalResults();
   }, [API_URL, selectedElection]);
 
-  // Process final results into sorted array: [candidate, vote_count]
   let resultsForElection = finalResult
     ? finalResult[selectedElection]?.results
     : null;
@@ -129,7 +121,6 @@ export default function FinalResultsPage() {
   const displayResults = showAll ? sortedResults : sortedResults.slice(0, 5);
   const leader = sortedResults.length > 0 ? sortedResults[0] : null;
 
-  // Prepare pie chart data: top 4 candidates with remaining aggregated as 'Others'
   let pieData = null;
   if (sortedResults.length > 0) {
     const topFour = sortedResults.slice(0, 4);
@@ -166,7 +157,6 @@ export default function FinalResultsPage() {
     };
   }
 
-  // Pie chart options similar to live results page
   const pieOptions = {
     plugins: {
       legend: {
@@ -209,7 +199,6 @@ export default function FinalResultsPage() {
     maintainAspectRatio: true,
   };
 
-  // Format current time for display in sidebar footer
   const formatTime = () => {
     const now = new Date();
     return now.toLocaleTimeString(undefined, {
@@ -226,12 +215,10 @@ export default function FinalResultsPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Mobile sidebar toggle
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
   };
 
-  // Handle election selection from sidebar
   const handleElectionSelect = (electionId: string) => {
     setSelectedElection(electionId);
     setFinalResult(null);
@@ -241,7 +228,6 @@ export default function FinalResultsPage() {
     }
   };
 
-  // Helper to determine progress bar color based on rank
   const getColor = (position: number) => {
     if (position === 0) return "from-amber-500 to-rose-500";
     if (position === 1) return "from-blue-500 to-indigo-500";

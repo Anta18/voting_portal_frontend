@@ -46,7 +46,6 @@ export default function CreateElectionPage() {
     votersFile?: string | ArrayBuffer | null;
   }
 
-  // Predefined election types for dropdown
   const electionTypes = [
     { value: "", label: "Select an election type" },
     { value: "national", label: "National Election" },
@@ -56,7 +55,6 @@ export default function CreateElectionPage() {
     { value: "organizational", label: "Organizational" },
   ];
 
-  // Document types for dropdown
   const documentTypes = [
     { value: "", label: "Select required document" },
     { value: "id_card", label: "ID Card" },
@@ -90,7 +88,6 @@ export default function CreateElectionPage() {
     }
   };
 
-  // Helper function to read the file as text
   const readFileAsText = (file: File): Promise<string | ArrayBuffer | null> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -108,7 +105,6 @@ export default function CreateElectionPage() {
 
     const token = localStorage.getItem("accessToken");
 
-    // Validate dates
     const startDate = new Date(formData.start_date);
     const endDate = new Date(formData.end_date);
 
@@ -119,10 +115,8 @@ export default function CreateElectionPage() {
       return;
     }
 
-    // Build the payload object based on the form data.
     let payload: ElectionPayload = { ...formData };
 
-    // If a file is provided, read it as text and add to the payload.
     if (votersFile) {
       try {
         const fileContent = await readFileAsText(votersFile);
@@ -155,7 +149,6 @@ export default function CreateElectionPage() {
       } else {
         setMessage(data.message || "Election created successfully!");
         setMessageType("success");
-        // Optionally clear the form or navigate away.
         setFormData({
           name: "",
           election_type: "",
@@ -165,10 +158,7 @@ export default function CreateElectionPage() {
         });
         setVotersFile(null);
 
-        // Redirect after a short delay to show success message
-        setTimeout(() => {
-          // router.push('/elections'); // Uncomment to redirect after creation.
-        }, 2000);
+        setTimeout(() => {}, 2000);
       }
     } catch (error) {
       setMessage("Error creating election");

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { AuthGuard } from "../components/AuthGuard";
 import { Calendar, Clock, Tag, ChevronRight, Award, Info } from "lucide-react";
 
-// Define types for an Election and Stats
 interface Election {
   _id: string;
   name: string;
@@ -25,10 +24,8 @@ interface Stats {
   upcoming: number;
 }
 
-// Define the allowed tab types (removed "eligible")
 type TabType = "ongoing" | "future" | "past";
 
-// Helper function that accepts a string or Date object
 const getDaysRemaining = (dateInput: string | Date): number => {
   const electionDate = new Date(dateInput);
   const today = new Date();
@@ -72,7 +69,6 @@ export default function AdminDashboardPage() {
           Authorization: `Bearer ${token}`,
         };
 
-        // Use admin endpoints for fetching election data in parallel
         const [ongoingRes, futureRes, pastRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/election/admin/ongoing`, {
             headers,
@@ -99,7 +95,6 @@ export default function AdminDashboardPage() {
 
         setElections(allElections);
 
-        // Calculate stats (for admin, you might change these based on additional info if needed)
         setStats({
           total:
             (ongoingData.ongoing_elections || []).length +
@@ -142,7 +137,6 @@ export default function AdminDashboardPage() {
     return Math.floor((elapsed / total) * 100);
   };
 
-  // Updated to allow getDaysRemaining to accept Date objects
   const getStatusLabel = (election: Election) => {
     const now = new Date();
     const start = new Date(election.start_date);

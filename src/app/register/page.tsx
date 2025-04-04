@@ -20,7 +20,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Use your backend URL from env variable
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +63,6 @@ export default function RegisterPage() {
       } else {
         console.log("Registration data:", data);
 
-        // If your API returns an access token and user details, store them
         if (data.access_token && data.user) {
           localStorage.setItem("accessToken", data.access_token);
           localStorage.setItem("user", JSON.stringify(data.user));

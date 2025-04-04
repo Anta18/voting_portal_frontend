@@ -38,7 +38,6 @@ export default function CheckIntegrityPage() {
         setDummyData(null);
       } else {
         const data: DummyIntegrityResponse = await res.json();
-        // Add status if not provided by API
         if (!data.status) {
           data.status = data.message.toLowerCase().includes("success")
             ? "success"
@@ -46,7 +45,6 @@ export default function CheckIntegrityPage() {
             ? "warning"
             : "error";
         }
-        // Add timestamp
         data.timestamp = new Date().toISOString();
         setDummyData(data);
         setLastChecked(new Date().toLocaleTimeString());
@@ -59,13 +57,8 @@ export default function CheckIntegrityPage() {
     }
   };
 
-  // Optional: Auto-check on component mount
-  useEffect(() => {
-    // Uncomment to auto-verify on page load
-    // verifyIntegrity();
-  }, []);
+  useEffect(() => {}, []);
 
-  // Helpers for status color and icon
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "success":

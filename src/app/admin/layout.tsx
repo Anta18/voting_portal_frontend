@@ -1,4 +1,3 @@
-// app/admin/layout.tsx
 import AdminGuard from "./components/AdminGuard";
 import "../globals.css";
 

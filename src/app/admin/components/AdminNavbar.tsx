@@ -1,8 +1,8 @@
-'use client';
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, Menu, X } from 'lucide-react';
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { ChevronDown, Menu, X } from "lucide-react";
 
 type User = {
   full_name: string;
@@ -17,9 +17,8 @@ export default function AdminNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
 
-  // Load admin user from localStorage
   const loadUserFromStorage = useCallback(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
@@ -32,8 +31,8 @@ export default function AdminNavbar() {
     const handleStorageChange = () => {
       loadUserFromStorage();
     };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [loadUserFromStorage]);
 
   const toggleDropdown = () => {
@@ -47,13 +46,13 @@ export default function AdminNavbar() {
   const handleLogout = () => {
     setIsDropdownOpen(false);
     setIsMobileMenuOpen(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('accessToken'); // Remove accessToken as well
-    localStorage.removeItem('userRole'); // Remove userRole as well
-    window.dispatchEvent(new Event('storage'));
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("userRole");
+    window.dispatchEvent(new Event("storage"));
     setUser(null);
     setShowLogoutMessage(true);
-    router.push('/login');
+    router.push("/login");
   };
 
   useEffect(() => {
@@ -72,14 +71,14 @@ export default function AdminNavbar() {
   );
 
   const adminLinks = [
-    { href: '/admin', label: 'Dashboard' },
-    { href: '/admin/create-admin', label: 'Create Admin' },
-    { href: '/admin/create-election', label: 'Create Election' },
-    { href: '/admin/approve-candidates', label: 'Approve Candidates' },
-    { href: '/admin/view-registrations', label: 'View Registrations' },
-    { href: '/admin/check-integrity', label: 'Check Vote Integrity' },
-    { href: '/admin/results/live', label: 'Live Results' },
-    { href: '/admin/results/published', label: 'Published Results' },
+    { href: "/admin", label: "Dashboard" },
+    { href: "/admin/create-admin", label: "Create Admin" },
+    { href: "/admin/create-election", label: "Create Election" },
+    { href: "/admin/approve-candidates", label: "Approve Candidates" },
+    { href: "/admin/view-registrations", label: "View Registrations" },
+    { href: "/admin/check-integrity", label: "Check Vote Integrity" },
+    { href: "/admin/results/live", label: "Live Results" },
+    { href: "/admin/results/published", label: "Published Results" },
   ];
 
   return (
@@ -87,13 +86,20 @@ export default function AdminNavbar() {
       <nav className="sticky top-0 z-50 w-full bg-gradient-to-r from-gray-800 to-gray-900 shadow-xl transition-all h-[72px]">
         <div className="flex items-center justify-between h-16 px-6">
           <Link href="/admin" className="flex items-center">
-            <img className="h-10 mr-3" src="/logo.png" alt="Admin Portal Logo" />
+            <img
+              className="h-10 mr-3"
+              src="/logo.png"
+              alt="Admin Portal Logo"
+            />
             <span className="text-2xl font-extrabold bg-gradient-to-r from-yellow-400 to-red-600 bg-clip-text text-transparent">
               Admin Portal
             </span>
           </Link>
           <div className="lg:hidden">
-            <button onClick={toggleMobileMenu} className="p-2 text-white focus:outline-none">
+            <button
+              onClick={toggleMobileMenu}
+              className="p-2 text-white focus:outline-none"
+            >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
@@ -106,8 +112,8 @@ export default function AdminNavbar() {
                     href={link.href}
                     className={`text-lg px-4 py-2 rounded-md border transition-colors duration-300 ${
                       pathname === link.href
-                        ? 'bg-gray-700 border-transparent'
-                        : 'bg-transparent border-gray-800 hover:border-transparent hover:bg-gray-700'
+                        ? "bg-gray-700 border-transparent"
+                        : "bg-transparent border-gray-800 hover:border-transparent hover:bg-gray-700"
                     } text-yellow-400`}
                   >
                     {link.label}
@@ -121,7 +127,9 @@ export default function AdminNavbar() {
                   >
                     <span>{user.full_name}</span>
                     <ChevronDown
-                      className={`h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                      className={`h-5 w-5 transition-transform ${
+                        isDropdownOpen ? "rotate-180" : ""
+                      }`}
                     />
                   </button>
                   {isDropdownOpen && (

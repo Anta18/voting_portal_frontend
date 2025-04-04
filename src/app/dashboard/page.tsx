@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { AuthGuard } from "../components/AuthGuard";
 import { Calendar, Clock, Tag, ChevronRight, Award, Info } from "lucide-react";
 
-// Define types for an Election and Stats
 interface Election {
   _id: string;
   name: string;
@@ -26,10 +25,8 @@ interface Stats {
   upcoming: number;
 }
 
-// Define the allowed tab types
 type TabType = "ongoing" | "future" | "past" | "eligible";
 
-// Helper function that accepts a string or Date object
 const getDaysRemaining = (dateInput: string | Date): number => {
   const electionDate = new Date(dateInput);
   const today = new Date();
@@ -86,25 +83,20 @@ export default function DashboardPage() {
       showFlashMessage("Registration successful!", "success");
       console.log("Registration successful:", data);
 
-      // Update the elections state:
       setElections((prevElections: ElectionsData) => {
-        // Find the registered election in eligible list.
         const registeredElection = prevElections.eligible.find(
           (election: Election) => election._id === electionId
         );
         if (!registeredElection) return prevElections;
 
-        // Remove from eligible list.
         const updatedEligible = prevElections.eligible.filter(
           (election: Election) => election._id !== electionId
         );
 
-        // Determine which category it now belongs to.
         const now = new Date();
         const start = new Date(registeredElection.start_date);
         const end = new Date(registeredElection.end_date);
 
-        // Create copies of the current arrays.
         const updatedOngoing = [...prevElections.ongoing];
         const updatedFuture = [...prevElections.future];
         const updatedPast = [...prevElections.past];
@@ -144,7 +136,6 @@ export default function DashboardPage() {
           Authorization: `Bearer ${token}`,
         };
 
-        // Fetch all election data in parallel
         const [ongoingRes, futureRes, pastRes, eligibleRes] = await Promise.all(
           [
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/election/user/ongoing`, {
@@ -180,7 +171,6 @@ export default function DashboardPage() {
 
         setElections(allElections);
 
-        // Calculate stats
         setStats({
           total:
             (ongoingData.ongoing_elections || []).length +
@@ -256,7 +246,6 @@ export default function DashboardPage() {
       election.end_date
     );
 
-    // Determine button text and onClick action based on election type
     let buttonText = "";
     let onClickAction = () => {};
 

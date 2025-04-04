@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 interface Election {
   _id: string;
   name: string;
-  // include other properties if needed
 }
 
 interface FormData {
@@ -31,7 +30,6 @@ export default function CandidateRegistrationPage() {
   const [error, setError] = useState<string>("");
   const router = useRouter();
 
-  // Fetch eligible elections on component mount
   useEffect(() => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     async function fetchElections() {
@@ -91,7 +89,6 @@ export default function CandidateRegistrationPage() {
       if (!res.ok) {
         throw new Error(result.error || "Registration failed");
       }
-      // Successful registration: redirect or show success message
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "An error occurred during registration");

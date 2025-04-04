@@ -10,7 +10,6 @@ import {
   Eye,
 } from "lucide-react";
 
-// Define interfaces
 interface Election {
   name: string;
 }
@@ -22,10 +21,9 @@ interface Candidate {
   election_id: string | Election;
   created_at: string;
   status?: string;
-  manifesto?: string; // Added manifesto property
+  manifesto?: string;
 }
 
-// Helper function to format date strings
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleString("en-US", {
@@ -37,21 +35,18 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Function to get party badge color
 const getPartyColor = (party?: string) => {
-  if (!party) return "bg-green-600"; // Independent
+  if (!party) return "bg-green-600";
   const partyLower = party.toLowerCase();
   if (partyLower.includes("bjp")) return "bg-orange-600";
   if (partyLower.includes("inc")) return "bg-blue-600";
-  return "bg-purple-600"; // Others
+  return "bg-purple-600";
 };
 
-// Helper function to display election name
 const getElectionName = (election: string | Election) => {
   return typeof election === "string" ? election : election.name;
 };
 
-// DetailsModal component with candidate deapproval option
 interface DetailsModalProps {
   title: string;
   data: Candidate;

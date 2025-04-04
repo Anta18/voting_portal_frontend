@@ -40,7 +40,6 @@ export default function ElectionsPage() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  // Fetch eligible elections from backend (/election/eligible_for_registration)
   useEffect(() => {
     async function fetchEligibleElections() {
       try {
@@ -97,7 +96,6 @@ export default function ElectionsPage() {
       }
       showFlashMessage("Registration successful!", "success");
       console.log("Registration successful:", data);
-      // Remove the registered election from the list immediately.
       setElections((prevElections) =>
         prevElections.filter((election) => election._id !== electionId)
       );
@@ -114,7 +112,7 @@ export default function ElectionsPage() {
     <AuthGuard>
       <div className="relative min-h-[calc(100vh-72px)] bg-gray-900 text-white p-6">
         <div className="max-w-6xl mx-auto">
-          {/* Form Section with prefilled full name */}
+          {/* Form Section*/}
           <div className="mb-12">
             <label
               htmlFor="fullName"

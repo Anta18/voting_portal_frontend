@@ -41,7 +41,6 @@ export default function MergedNavbar() {
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Load user and role from localStorage
   const loadFromStorage = useCallback(() => {
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
@@ -54,11 +53,9 @@ export default function MergedNavbar() {
   useEffect(() => {
     loadFromStorage();
 
-    // Listen for storage and focus events to update the navbar if changes happen elsewhere
     const handleStorageChange = () => loadFromStorage();
     const handleFocus = () => loadFromStorage();
 
-    // Add scroll event listener for navbar effect
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setScrolled(true);
@@ -67,7 +64,6 @@ export default function MergedNavbar() {
       }
     };
 
-    // Click outside to close dropdown
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -127,10 +123,8 @@ export default function MergedNavbar() {
     </div>
   );
 
-  // Determine if this is an admin session
   const isAdmin = userRole === '"admin"' || userRole === '"root"';
 
-  // Define the links for each navbar type with icons
   const clientLinks: NavLink[] = [
     { href: "/dashboard", label: "Dashboard", icon: <Home size={18} /> },
     {

@@ -14,7 +14,6 @@ import {
   PieChart,
 } from "lucide-react";
 
-// Types for election and candidate details
 interface ElectionDetails {
   id: string;
   name: string;
