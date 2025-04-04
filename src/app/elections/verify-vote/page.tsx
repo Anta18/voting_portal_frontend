@@ -48,11 +48,11 @@ export default function VerifyVotePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-slate-900/90 p-8 rounded-xl shadow-2xl border border-indigo-500/30 backdrop-blur">
         <div className="flex justify-center mb-6">
           <div className="bg-indigo-500/20 p-3 rounded-full">
-            <Shield className="h-8 w-8 text-indigo-400" />
+            <Shield className="h-8 w-8 text-indigo-600" />
           </div>
         </div>
 

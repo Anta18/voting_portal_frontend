@@ -54,7 +54,7 @@ export default function ElectionsPage() {
     setFlashType(type);
     setTimeout(() => {
       setFlashMessage("");
-    }, 3000); // Message disappears after 3 seconds
+    }, 3000);
   };
 
   const handleRegister = async (electionId: string) => {

@@ -64,25 +64,64 @@ interface Stats {
   approvedRegistrations: number;
 }
 
-// Modal component
+// Extended modal props for candidate deapproval.
 interface ModalProps {
   title: string;
   data: any;
+  modalType: string;
   onClose: () => void;
   onApprove?: () => void;
   onReject?: () => void;
+  onDeapproved?: () => void;
 }
 
+// DetailsModal now supports candidate deapproval.
 const DetailsModal: React.FC<ModalProps> = ({
   title,
   data,
+  modalType,
   onClose,
-  onApprove,
-  onReject,
+  onDeapproved,
 }) => {
+  // For candidate deapproval confirmation
+  const [showConfirm, setShowConfirm] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [deapprovalError, setDeapprovalError] = useState<string>("");
+
+  const handleConfirmDeapprove = async () => {
+    setIsSubmitting(true);
+    setDeapprovalError("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/admin/deapprove/${data.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to deapprove candidate");
+      }
+      // Call parent callback to refresh data.
+      if (onDeapproved) onDeapproved();
+      setShowConfirm(false);
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setDeapprovalError(err.message || "Error deapproving candidate");
+    }
+    setIsSubmitting(false);
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 p-4">
-      <div className="bg-gray-800 text-white rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] flex flex-col">
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="relative bg-gray-800 text-white rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-gray-700">
           <h2 className="text-xl font-bold">{title}</h2>
           <button
@@ -110,9 +149,10 @@ const DetailsModal: React.FC<ModalProps> = ({
                 <div className="mt-2">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
-                      data.status === "active" || data.status === "approved"
+                      data.status.toLowerCase() === "active" ||
+                      data.status.toLowerCase() === "approved"
                         ? "bg-green-800 text-green-200"
-                        : data.status === "pending"
+                        : data.status.toLowerCase() === "pending"
                         ? "bg-yellow-800 text-yellow-200"
                         : "bg-red-800 text-red-200"
                     }`}
@@ -136,6 +176,44 @@ const DetailsModal: React.FC<ModalProps> = ({
               </p>
             </div>
           )}
+          {/* Candidate-specific deapproval option */}
+          {modalType === "candidate" &&
+            data.status?.toLowerCase() === "approved" && (
+              <div className="mt-6">
+                {!showConfirm ? (
+                  <button
+                    onClick={() => setShowConfirm(true)}
+                    className="w-full bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-500 transition"
+                  >
+                    Deapprove Candidate
+                  </button>
+                ) : (
+                  <div className="bg-red-900 p-4 rounded-lg">
+                    <p className="mb-4">
+                      Are you sure you want to deapprove this candidate?
+                    </p>
+                    {deapprovalError && (
+                      <p className="text-red-300 mb-4">{deapprovalError}</p>
+                    )}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setShowConfirm(false)}
+                        className="mr-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-400 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleConfirmDeapprove}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition"
+                      >
+                        {isSubmitting ? "Deapproving..." : "Confirm"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
         </div>
         <div className="flex justify-end items-center p-6 border-t border-gray-700">
           <button
@@ -844,7 +922,7 @@ const AdminDashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                {/* Additional filter controls for candidates */}
+                {/* Filter controls for candidates */}
                 <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-4 p-4">
                   <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                     <div className="flex-1">
@@ -1015,9 +1093,11 @@ const AdminDashboard: React.FC = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span
                                   className={`px-2 py-1 text-xs rounded-full ${
-                                    candidate.status === "approved"
+                                    candidate.status?.toLowerCase() ===
+                                    "approved"
                                       ? "bg-green-900 text-green-200"
-                                      : candidate.status === "pending"
+                                      : candidate.status?.toLowerCase() ===
+                                        "pending"
                                       ? "bg-yellow-900 text-yellow-200"
                                       : "bg-red-900 text-red-200"
                                   }`}
@@ -1378,18 +1458,20 @@ const AdminDashboard: React.FC = () => {
             )}
           </>
         )}
-      </main>
 
-      {/* Modal */}
-      {modalState.isOpen && (
-        <DetailsModal
-          title={modalState.title}
-          data={modalState.data}
-          onClose={closeModal}
-          onApprove={modalState.type === "registration" ? undefined : undefined}
-          onReject={modalState.type === "registration" ? undefined : undefined}
-        />
-      )}
+        {/* Modal */}
+        {modalState.isOpen && (
+          <DetailsModal
+            title={modalState.title}
+            data={modalState.data}
+            modalType={modalState.type}
+            onClose={closeModal}
+            onDeapproved={
+              modalState.type === "candidate" ? fetchData : undefined
+            }
+          />
+        )}
+      </main>
     </div>
   );
 };

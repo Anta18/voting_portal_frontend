@@ -200,12 +200,6 @@ export default function LoginPage() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Password
                     </label>
-                    <a
-                      href="#"
-                      className="text-xs font-medium text-amber-600 hover:text-amber-500"
-                    >
-                      Forgot password?
-                    </a>
                   </div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

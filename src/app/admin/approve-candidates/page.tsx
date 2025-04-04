@@ -7,8 +7,10 @@ import {
   User,
   Calendar,
   Flag,
+  Eye,
 } from "lucide-react";
 
+// Define interfaces
 interface Election {
   name: string;
 }
@@ -20,6 +22,7 @@ interface Candidate {
   election_id: string | Election;
   created_at: string;
   status?: string;
+  manifesto?: string; // Added manifesto property
 }
 
 // Helper function to format date strings
@@ -36,21 +39,187 @@ const formatDate = (dateString: string) => {
 
 // Function to get party badge color
 const getPartyColor = (party?: string) => {
-  if (!party) return "bg-gray-600"; // Independent
-
+  if (!party) return "bg-green-600"; // Independent
   const partyLower = party.toLowerCase();
   if (partyLower.includes("bjp")) return "bg-orange-600";
   if (partyLower.includes("inc")) return "bg-blue-600";
   return "bg-purple-600"; // Others
 };
 
+// Helper function to display election name
+const getElectionName = (election: string | Election) => {
+  return typeof election === "string" ? election : election.name;
+};
+
+// DetailsModal component with candidate deapproval option
+interface DetailsModalProps {
+  title: string;
+  data: Candidate;
+  modalType: string;
+  onClose: () => void;
+  onDeapproved?: () => void;
+}
+
+const DetailsModal: React.FC<DetailsModalProps> = ({
+  title,
+  data,
+  modalType,
+  onClose,
+  onDeapproved,
+}) => {
+  const [showConfirm, setShowConfirm] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [deapprovalError, setDeapprovalError] = useState<string>("");
+
+  const handleConfirmDeapprove = async () => {
+    setIsSubmitting(true);
+    setDeapprovalError("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/admin/deapprove/${data._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to deapprove candidate");
+      }
+      if (onDeapproved) onDeapproved();
+      setShowConfirm(false);
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setDeapprovalError(err.message || "Error deapproving candidate");
+    }
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 p-4">
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="relative bg-gray-800 text-white rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-700">
+          <h2 className="text-xl font-bold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+            aria-label="Close"
+          >
+            X
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-6">
+          <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">{data.full_name}</h3>
+            {data.party && <p className="text-gray-300">Party: {data.party}</p>}
+            <p className="text-xs text-gray-400">
+              ID: {data._id.substring(0, 8)}
+            </p>
+            {data.status && (
+              <div className="mt-2">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    data.status.toLowerCase() === "approved"
+                      ? "bg-green-800 text-green-200"
+                      : data.status.toLowerCase() === "pending"
+                      ? "bg-yellow-800 text-yellow-200"
+                      : "bg-red-800 text-red-200"
+                  }`}
+                >
+                  {data.status.toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="bg-gray-700 p-4 rounded-lg overflow-auto max-h-96">
+            <pre className="text-sm whitespace-pre-wrap break-words">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
+          {data.manifesto && (
+            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">Manifesto</h3>
+              <p className="text-gray-300 whitespace-pre-wrap">
+                {data.manifesto}
+              </p>
+            </div>
+          )}
+          {/* Candidate-specific deapproval option */}
+          {modalType === "candidate" &&
+            data.status?.toLowerCase() === "approved" && (
+              <div className="mt-6">
+                {!showConfirm ? (
+                  <button
+                    onClick={() => setShowConfirm(true)}
+                    className="w-full bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-500 transition"
+                  >
+                    Deapprove Candidate
+                  </button>
+                ) : (
+                  <div className="bg-red-900 p-4 rounded-lg">
+                    <p className="mb-4">
+                      Are you sure you want to deapprove this candidate?
+                    </p>
+                    {deapprovalError && (
+                      <p className="text-red-300 mb-4">{deapprovalError}</p>
+                    )}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setShowConfirm(false)}
+                        className="mr-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-400 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleConfirmDeapprove}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition"
+                      >
+                        {isSubmitting ? "Deapproving..." : "Confirm"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+        </div>
+        <div className="flex justify-end items-center p-6 border-t border-gray-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors ml-auto"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ApproveCandidatesPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Set the default filter (you can change it as needed)
-  const [selectedTab, setSelectedTab] = useState("BJP");
+  // Default filter now set to "All"
+  const [selectedTab, setSelectedTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    data: Candidate | null;
+    type: string;
+  }>({
+    isOpen: false,
+    title: "",
+    data: null,
+    type: "",
+  });
   const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
@@ -170,29 +339,23 @@ export default function ApproveCandidatesPage() {
       });
   };
 
-  // Helper to display election name regardless of its type
-  const getElectionName = (election: string | Election) => {
-    return typeof election === "string" ? election : election.name;
-  };
-
   // Filter candidates based on search term and selected tab
   const filteredCandidates = candidates.filter((candidate) => {
     const lowerSearch = searchTerm.toLowerCase();
     const matchesSearch =
       searchTerm === "" ||
       candidate.full_name.toLowerCase().includes(lowerSearch) ||
-      (candidate.party || "Independent").toLowerCase().includes(lowerSearch) ||
+      (candidate.party || "independent").toLowerCase().includes(lowerSearch) ||
       getElectionName(candidate.election_id)
         .toLowerCase()
         .includes(lowerSearch);
 
-    // Filter based on party selection
-    const candidateParty = candidate.party ? candidate.party.toLowerCase() : "";
+    // Filter based on selected tab
     if (selectedTab === "BJP") {
-      return candidate.party && candidateParty.includes("bjp") && matchesSearch;
+      return candidate.party?.toLowerCase().includes("bjp") && matchesSearch;
     }
     if (selectedTab === "INC") {
-      return candidate.party && candidateParty.includes("inc") && matchesSearch;
+      return candidate.party?.toLowerCase().includes("inc") && matchesSearch;
     }
     if (selectedTab === "independent") {
       return (
@@ -200,6 +363,9 @@ export default function ApproveCandidatesPage() {
       );
     }
     if (selectedTab === "others") {
+      const candidateParty = candidate.party
+        ? candidate.party.toLowerCase()
+        : "";
       return (
         candidate.party &&
         !candidateParty.includes("bjp") &&
@@ -207,6 +373,7 @@ export default function ApproveCandidatesPage() {
         matchesSearch
       );
     }
+    // When "All" is selected, return all candidates matching search term
     return matchesSearch;
   });
 
@@ -218,7 +385,6 @@ export default function ApproveCandidatesPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-red-700 bg-clip-text text-transparent mb-4 md:mb-0">
             Candidate Verification Dashboard
           </h1>
-
           <div className="flex space-x-4">
             <div className="bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-xl px-4 py-2 border border-gray-700">
               <p className="font-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
@@ -253,8 +419,17 @@ export default function ApproveCandidatesPage() {
                 />
               </svg>
             </div>
-
             <div className="flex space-x-2 w-full md:w-auto overflow-x-auto pb-1">
+              <button
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedTab === "All"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-900 text-gray-400 hover:bg-gray-700"
+                }`}
+                onClick={() => setSelectedTab("All")}
+              >
+                All
+              </button>
               <button
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   selectedTab === "BJP"
@@ -278,7 +453,7 @@ export default function ApproveCandidatesPage() {
               <button
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   selectedTab === "independent"
-                    ? "bg-gray-600 text-white"
+                    ? "bg-green-600 text-white"
                     : "bg-gray-900 text-gray-400 hover:bg-gray-700"
                 }`}
                 onClick={() => setSelectedTab("independent")}
@@ -419,6 +594,19 @@ export default function ApproveCandidatesPage() {
                             <XCircle className="mr-2 h-4 w-4" />
                             Reject
                           </button>
+                          <button
+                            onClick={() =>
+                              setModalState({
+                                isOpen: true,
+                                title: "Candidate Details",
+                                data: candidate,
+                                type: "candidate",
+                              })
+                            }
+                            className="text-indigo-400 hover:text-indigo-300 ml-2"
+                          >
+                            <Eye size={18} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -429,6 +617,41 @@ export default function ApproveCandidatesPage() {
           )}
         </div>
       </div>
+
+      {/* Modal */}
+      {modalState.isOpen && modalState.data && (
+        <DetailsModal
+          title={modalState.title}
+          data={modalState.data}
+          modalType={modalState.type}
+          onClose={() =>
+            setModalState({ isOpen: false, title: "", data: null, type: "" })
+          }
+          onDeapproved={
+            modalState.type === "candidate"
+              ? () => {
+                  // Refresh candidates after deapproval
+                  fetch(`${backendUrl}/candidate/admin/pending`, {
+                    method: "GET",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${localStorage.getItem(
+                        "accessToken"
+                      )}`,
+                    },
+                  })
+                    .then((response) => {
+                      if (!response.ok)
+                        throw new Error("Error refreshing candidates");
+                      return response.json();
+                    })
+                    .then((data) => setCandidates(data.candidates))
+                    .catch((err) => console.error(err));
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

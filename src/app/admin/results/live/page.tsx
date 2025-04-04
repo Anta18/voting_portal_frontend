@@ -117,18 +117,17 @@ export default function LiveResultsPage() {
       setRefreshing(false);
     });
 
-    // Process incremental vote updates
+    // Process incremental vote updates using candidate names for matching.
     newSocket.on("vote_update", (data: any) => {
       console.log("Received vote update:", data);
       if (data.election_id === selectedElection) {
         // Update candidate vote counts based on the tally payload.
-        // Assumes data.tally has two arrays:
-        //    candidates: [candidate_id, ...] and counts: [vote_count, ...]
+        // Here we match on candidate_name instead of candidate_id.
         setLiveResults((prev) => {
           if (!prev) return prev;
           const updatedCandidates = prev.live_results.map((candidate) => {
             const candidateIndex = data.tally.candidates.indexOf(
-              candidate.candidate_id
+              candidate.candidate_name
             );
             if (candidateIndex !== -1) {
               return {

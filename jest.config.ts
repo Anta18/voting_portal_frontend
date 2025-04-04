@@ -6,11 +6,12 @@ const config: Config = {
   testEnvironment: 'jsdom',
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   clearMocks: true,
-  collectCoverage: true,
+  collectCoverage: false,
   coverageDirectory: 'coverage',
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/__mocks__/fileMock.js'
+    '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
   transform: {
     '^.+\\.[tj]sx?$': ['ts-jest', { useESM: true }],

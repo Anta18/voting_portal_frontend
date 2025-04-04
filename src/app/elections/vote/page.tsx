@@ -540,22 +540,7 @@ export default function VotePage() {
                       {/* Side Panel: Live Election Stats & Info */}
                       <div className="lg:col-span-1">
                         <div className="bg-gray-800/50 rounded-lg p-5 shadow-lg mb-6">
-                          <h2 className="text-xl font-semibold mb-5 flex items-center">
-                            <Award size={20} className="mr-3 text-yellow-400" />
-                            Election Stats
-                          </h2>
-                          <div className="mb-6">
-                            <div className="aspect-square">
-                              <Pie
-                                data={candidateChartData}
-                                options={chartOptions}
-                              />
-                            </div>
-                            <p className="text-gray-400 text-xs mt-4 text-center">
-                              *Live vote distribution
-                            </p>
-                          </div>
-                          <div className="space-y-4 border-t border-gray-700 pt-4">
+                          <div className="space-y-4 pt-4">
                             <div className="flex justify-between items-center">
                               <span className="text-gray-400">
                                 Total Candidates:

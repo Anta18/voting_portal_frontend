@@ -49,7 +49,7 @@ export default function CreateElectionPage() {
   // Predefined election types for dropdown
   const electionTypes = [
     { value: "", label: "Select an election type" },
-    { value: "federal", label: "Federal Election" },
+    { value: "national", label: "National Election" },
     { value: "state", label: "State Election" },
     { value: "local", label: "Local Government" },
     { value: "school", label: "School/University" },
@@ -73,7 +73,7 @@ export default function CreateElectionPage() {
     required_document:
       "Specify what identification voters need to present before casting their vote.",
     votersFile:
-      "Upload a .txt file with email addresses of eligible voters (one per line).",
+      "Upload a .txt file with voter ids of eligible voters (one per line).",
     date_range: "Set the timeframe during which voters can cast their ballots.",
   };
 

@@ -52,17 +52,71 @@ interface ForecastData {
   election_end_date: string;
 }
 
-// Modal component to display candidate details
+interface FraudResults {
+  message: string;
+  suspected_clusters: {
+    [electionId: string]: {
+      time_clusters?: {
+        cluster_label: number;
+        vote_count: number;
+        cluster_duration_seconds: number;
+        votes: { vote_id: string; timestamp: string }[];
+      }[];
+      ip_flags?: {
+        ip: string;
+        vote_count: number;
+        vote_ids: string[];
+      }[];
+    };
+  };
+}
+
 interface CandidateModalProps {
   candidate: Candidate | null;
   onClose: () => void;
+  onDeapproved: () => void;
 }
 
 const CandidateModal: React.FC<CandidateModalProps> = ({
   candidate,
   onClose,
+  onDeapproved,
 }) => {
+  const [showConfirm, setShowConfirm] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [deapprovalError, setDeapprovalError] = useState<string>("");
+
   if (!candidate) return null;
+
+  const handleConfirmDeapprove = async () => {
+    setIsSubmitting(true);
+    setDeapprovalError("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/admin/deapprove/${candidate.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to deapprove candidate");
+      }
+      onDeapproved();
+      setShowConfirm(false);
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setDeapprovalError(err.message || "Error deapproving candidate");
+    }
+    setIsSubmitting(false);
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       <div
@@ -96,25 +150,143 @@ const CandidateModal: React.FC<CandidateModalProps> = ({
               {candidate.manifesto || "No manifesto provided"}
             </p>
           </div>
-          {candidate.documents && candidate.documents.resume && (
-            <div>
-              <p className="text-sm text-white/60 mb-2">Resume</p>
-              <a
-                href={candidate.documents.resume}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-yellow-400 hover:text-yellow-300 transition-colors underline"
-              >
-                View Document
-              </a>
-            </div>
-          )}
           <div className="flex items-center text-sm text-white/50">
             <Clock className="mr-2" size={16} />
             Registered on: {new Date(candidate.created_at).toLocaleDateString()}
           </div>
         </div>
+        {candidate.status === "approved" && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-500 transition"
+            >
+              Deapprove Candidate
+            </button>
+          </div>
+        )}
+        {showConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-60 p-4">
+            <div
+              className="absolute inset-0 bg-black/80"
+              onClick={() => setShowConfirm(false)}
+              aria-hidden="true"
+            />
+            <div className="relative bg-white/10 border border-white/20 rounded-2xl p-8 z-70 max-w-sm w-full shadow-2xl transform transition-all">
+              <h3 className="text-xl font-bold text-white mb-4">
+                Confirm Deapproval
+              </h3>
+              <p className="text-white mb-4">
+                Are you sure you want to deapprove this candidate?
+              </p>
+              {deapprovalError && (
+                <p className="text-red-500 mb-4">{deapprovalError}</p>
+              )}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="mr-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDeapprove}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition"
+                >
+                  {isSubmitting ? "Deapproving..." : "Confirm"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
+
+// Component to display fraud detection results in a meaningful way.
+interface FraudDetectionResultsProps {
+  fraudData: FraudResults;
+  electionId: string;
+}
+
+const FraudDetectionResults: React.FC<FraudDetectionResultsProps> = ({
+  fraudData,
+  electionId,
+}) => {
+  const electionFraudData = fraudData.suspected_clusters[electionId];
+
+  if (!electionFraudData) {
+    return (
+      <div className="p-4 bg-green-900 rounded-xl">
+        <p className="text-green-200">No suspicious activity detected.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {electionFraudData.time_clusters &&
+        electionFraudData.time_clusters.length > 0 && (
+          <div className="p-4 bg-red-900 rounded-xl">
+            <h3 className="text-xl font-bold text-red-300 mb-2">
+              Time-Based Fraud Clusters
+            </h3>
+            {electionFraudData.time_clusters.map((cluster, index) => (
+              <div key={index} className="mb-4 border-b border-red-700 pb-2">
+                <p>
+                  <strong>Cluster Label:</strong> {cluster.cluster_label}
+                </p>
+                <p>
+                  <strong>Vote Count:</strong> {cluster.vote_count}
+                </p>
+                <p>
+                  <strong>Duration (seconds):</strong>{" "}
+                  {cluster.cluster_duration_seconds}
+                </p>
+                <details className="mt-2">
+                  <summary className="text-red-200">View Votes</summary>
+                  <ul className="list-disc ml-6 mt-1">
+                    {cluster.votes.map((vote, idx) => (
+                      <li key={idx}>
+                        <span className="font-medium">ID:</span> {vote.vote_id}{" "}
+                        - <span className="font-medium">Time:</span>{" "}
+                        {new Date(vote.timestamp).toLocaleTimeString()}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+            ))}
+          </div>
+        )}
+
+      {electionFraudData.ip_flags && electionFraudData.ip_flags.length > 0 && (
+        <div className="p-4 bg-orange-900 rounded-xl">
+          <h3 className="text-xl font-bold text-orange-300 mb-2">
+            IP-Based Fraud Flags
+          </h3>
+          {electionFraudData.ip_flags.map((flag, index) => (
+            <div key={index} className="mb-4 border-b border-orange-700 pb-2">
+              <p>
+                <strong>IP:</strong> {flag.ip}
+              </p>
+              <p>
+                <strong>Vote Count:</strong> {flag.vote_count}
+              </p>
+              <details className="mt-2">
+                <summary className="text-orange-200">View Vote IDs</summary>
+                <ul className="list-disc ml-6 mt-1">
+                  {flag.vote_ids.map((id, idx) => (
+                    <li key={idx}>{id}</li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -130,11 +302,35 @@ export default function ElectionDashboardPage() {
     null
   );
   const [isSortedAsc, setIsSortedAsc] = useState<boolean>(true);
-  const [fraudData, setFraudData] = useState<any>(null);
+  const [fraudData, setFraudData] = useState<FraudResults | null>(null);
   const [forecastData, setForecastData] = useState<ForecastData | null>(null);
   const [forecastError, setForecastError] = useState<string>("");
 
-  // Connect to Flask backend via Socket.IO for real-time fraud detection
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/election/admin/dashboard/${electionId}`,
+        { headers }
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to fetch dashboard data");
+      }
+      const data: DashboardData = await res.json();
+      setDashboardData(data);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    }
+    setIsLoading(false);
+  };
+
+  // Socket.IO connection to receive fraud detection updates.
   useEffect(() => {
     const socket = io(process.env.FLASK_URL || "http://localhost:8000");
 
@@ -153,38 +349,14 @@ export default function ElectionDashboardPage() {
     };
   }, []);
 
-  // Fetch dashboard data on mount
+  // Fetch dashboard data on mount and when electionId changes.
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("accessToken");
-        const headers = {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        };
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/election/admin/dashboard/${electionId}`,
-          { headers }
-        );
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || "Failed to fetch dashboard data");
-        }
-        const data: DashboardData = await res.json();
-        setDashboardData(data);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      }
-      setIsLoading(false);
-    };
-
     if (electionId) {
       fetchDashboardData();
     }
   }, [electionId]);
 
-  // Fetch voter turnout forecast from the Flask backend (HTTP endpoint)
+  // Fetch voter turnout forecast from the Flask backend.
   useEffect(() => {
     const fetchForecastData = async () => {
       try {
@@ -209,7 +381,6 @@ export default function ElectionDashboardPage() {
     }
   }, [electionId]);
 
-  // Format dates
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
@@ -219,7 +390,6 @@ export default function ElectionDashboardPage() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Toggle sort order for candidates (by full_name)
   const sortCandidates = () => {
     if (!dashboardData) return;
     const sorted = [...dashboardData.candidates].sort((a, b) =>
@@ -230,6 +400,16 @@ export default function ElectionDashboardPage() {
     setDashboardData({ ...dashboardData, candidates: sorted });
     setIsSortedAsc(!isSortedAsc);
   };
+
+  const now = new Date();
+  let isOngoing = false;
+  let isFuture = false;
+  if (dashboardData) {
+    const start = new Date(dashboardData.election.start_date);
+    const end = new Date(dashboardData.election.end_date);
+    isOngoing = now >= start && now <= end;
+    isFuture = now < start;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A192F] via-[#112240] to-[#0A192F] text-white">
@@ -244,7 +424,6 @@ export default function ElectionDashboardPage() {
           </div>
         ) : dashboardData ? (
           <div>
-            {/* Header Section */}
             <header className="mb-12 bg-white/5 rounded-2xl p-8 border border-white/10 shadow-xl">
               <div className="flex justify-between items-center">
                 <div>
@@ -278,7 +457,6 @@ export default function ElectionDashboardPage() {
               </div>
             </header>
 
-            {/* Stats Section */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {[
                 {
@@ -315,7 +493,6 @@ export default function ElectionDashboardPage() {
               ))}
             </section>
 
-            {/* Candidates Section */}
             <section>
               <div className="mb-8 flex items-center justify-between">
                 <h2 className="text-3xl font-bold text-yellow-400">
@@ -379,63 +556,65 @@ export default function ElectionDashboardPage() {
               <CandidateModal
                 candidate={selectedCandidate}
                 onClose={() => setSelectedCandidate(null)}
+                onDeapproved={fetchDashboardData}
               />
             )}
 
-            {/* Voter Turnout Forecast Section */}
-            <section className="mt-12 bg-white/5 p-6 border border-white/10 rounded-2xl shadow-xl">
-              <h2 className="text-2xl font-bold text-yellow-400 mb-4">
-                Voter Turnout Forecast
-              </h2>
-              {forecastError ? (
-                <p className="text-red-500">{forecastError}</p>
-              ) : forecastData ? (
-                <div>
-                  <p className="mb-2">
-                    <strong>Election End Date: </strong>
-                    {formatDate(forecastData.election_end_date)}
-                  </p>
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold">
-                      Historical Registrations:
-                    </h3>
-                    <ul className="list-disc ml-6">
-                      {Object.entries(forecastData.historical_counts).map(
-                        ([date, count]) => (
-                          <li key={date}>
-                            {formatDate(date)}: {count}
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Forecast:</h3>
-                    <ul className="list-disc ml-6">
-                      {forecastData.forecast.map((item) => (
-                        <li key={item.date}>
-                          {formatDate(item.date)}: {item.forecast}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex justify-center items-center">
-                  <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </section>
-
-            {/* Fraud Data Section (Real-Time Updates) */}
-            {fraudData && (
+            {(isOngoing || isFuture) && (
               <section className="mt-12 bg-white/5 p-6 border border-white/10 rounded-2xl shadow-xl">
+                <h2 className="text-2xl font-bold text-yellow-400 mb-4">
+                  Voter Turnout Forecast
+                </h2>
+                {forecastError ? (
+                  <p className="text-red-500">{forecastError}</p>
+                ) : forecastData ? (
+                  <div>
+                    <p className="mb-2">
+                      <strong>Election End Date: </strong>
+                      {formatDate(forecastData.election_end_date)}
+                    </p>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold">
+                        Historical Registrations:
+                      </h3>
+                      <ul className="list-disc ml-6">
+                        {Object.entries(forecastData.historical_counts).map(
+                          ([date, count]) => (
+                            <li key={date}>
+                              {formatDate(date)}: {count}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Forecast:</h3>
+                      <ul className="list-disc ml-6">
+                        {forecastData.forecast.map((item) => (
+                          <li key={item.date}>
+                            {formatDate(item.date)}: {item.forecast}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center">
+                    <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {isOngoing && fraudData && dashboardData && (
+              <section className="mt-12">
                 <h2 className="text-2xl font-bold text-yellow-400 mb-4">
                   Real-Time Fraud Detection
                 </h2>
-                <pre className="text-white text-sm">
-                  {JSON.stringify(fraudData, null, 2)}
-                </pre>
+                <FraudDetectionResults
+                  fraudData={fraudData}
+                  electionId={dashboardData.election.id}
+                />
               </section>
             )}
           </div>

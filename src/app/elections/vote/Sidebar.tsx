@@ -38,16 +38,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     : elections;
 
   return (
-    <aside className="md:w-1/4 h-[calc(100vh-72px)] bg-gradient-to-b from-blue-950 to-blue-900 p-6 overflow-y-auto border-r border-blue-800 shadow-lg">
+    <aside className="md:w-1/4 h-[calc(100vh-72px)] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 overflow-y-auto border-r border-blue-800 shadow-lg">
       {/* Header Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-rose-500 bg-clip-text text-transparent mb-2 flex items-center justify-center">
           <Award className="mr-2 text-yellow-500" size={20} />
-          Elections Dashboard
+          Cast Your Vote
         </h2>
         <div className="h-1 bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 rounded-full mb-4"></div>
         <p className="text-sm text-blue-300 text-center opacity-80">
-          Select an election to view details
+          Select an election to vote
         </p>
       </div>
 

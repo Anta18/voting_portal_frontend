@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { AuthGuard } from "@/app/components/AuthGuard";
 import {
   ArrowLeftRight,
   BarChart3,

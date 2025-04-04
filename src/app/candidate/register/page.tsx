@@ -119,7 +119,7 @@ export default function CandidateRegistrationPage() {
       </div>
 
       {/* Main content */}
-      <div className="max-w-6xl mx-auto px-6 pb-16">
+      <div className="max-w-6xl mx-auto px-6 pb-16 mt-10">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar: Election List */}
           <div className="lg:w-1/3">

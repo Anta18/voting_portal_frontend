@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, JSX } from "react";
+import { useRouter } from "next/navigation";
 import { AuthGuard } from "../components/AuthGuard";
 import { Calendar, Clock, Tag, ChevronRight, Award, Info } from "lucide-react";
 
@@ -38,6 +39,7 @@ const getDaysRemaining = (dateInput: string | Date): number => {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [elections, setElections] = useState<ElectionsData>({
     ongoing: [],
     future: [],
@@ -254,6 +256,27 @@ export default function DashboardPage() {
       election.end_date
     );
 
+    // Determine button text and onClick action based on election type
+    let buttonText = "";
+    let onClickAction = () => {};
+
+    if (type === "eligible") {
+      buttonText = "Register Now";
+      onClickAction = () => handleRegister(election._id);
+    } else if (type === "ongoing") {
+      buttonText = "Cast Your Vote";
+      onClickAction = () => router.push("/elections/vote");
+    } else if (type === "past") {
+      buttonText = "View Results";
+      onClickAction = () => router.push("/elections/results/final");
+    } else if (type === "future") {
+      buttonText = "Register As A Candidate";
+      onClickAction = () => router.push("/candidate/register");
+    } else {
+      buttonText = "View Details";
+      onClickAction = () => {};
+    }
+
     return (
       <div
         key={election._id}
@@ -304,27 +327,11 @@ export default function DashboardPage() {
         <div className="bg-gray-700 px-6 py-3 flex justify-between items-center">
           <button
             className="text-gray-300 hover:text-white text-sm font-medium transition-colors flex"
-            onClick={
-              type === "eligible"
-                ? () => handleRegister(election._id)
-                : () => {}
-            }
+            onClick={onClickAction}
           >
-            {type === "eligible" ? "Register Now" : "View Details"}
-            {type === "eligible" ? (
-              <ChevronRight
-                size={16}
-                className="text-yellow-400 mt-[2px] ml-1"
-              />
-            ) : (
-              ""
-            )}
+            {buttonText}
+            <ChevronRight size={16} className="text-yellow-400 ml-1 mt-[2px]" />
           </button>
-          {type === "eligible" ? (
-            ""
-          ) : (
-            <ChevronRight size={16} className="text-yellow-400" />
-          )}
         </div>
       </div>
     );
@@ -371,12 +378,12 @@ export default function DashboardPage() {
           {/* Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {renderStatCard(
-              "Total Elections",
+              "Total Registered Elections",
               stats.total,
               <Award size={24} className="text-white" />
             )}
             {renderStatCard(
-              "Participated",
+              "Past Elections",
               stats.participated,
               <Calendar size={24} className="text-white" />
             )}

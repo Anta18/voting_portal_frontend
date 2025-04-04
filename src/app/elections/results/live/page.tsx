@@ -115,7 +115,7 @@ export default function LiveResultsPage() {
       setRefreshing(false);
     });
 
-    // Process incremental vote updates
+    // Process incremental vote updates using candidate names for matching.
     newSocket.on("vote_update", (data: any) => {
       console.log("Received vote update:", data);
       // Only process if the update is for the selected election
@@ -123,10 +123,10 @@ export default function LiveResultsPage() {
         setLiveResults((prev) => {
           if (!prev) return prev;
           // Use the vote_update payload to update the vote_count for each candidate.
-          // Here we assume the payload has `tally.candidates` and `tally.counts`
+          // Now we match on candidate_name since backend results are mapped by name.
           const updatedCandidates = prev.live_results.map((candidate) => {
             const candidateIndex = data.tally.candidates.indexOf(
-              candidate.candidate_id
+              candidate.candidate_name
             );
             if (candidateIndex !== -1) {
               return {
